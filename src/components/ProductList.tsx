@@ -55,31 +55,26 @@ export default function ProductList({
       
       const data = await response.json();
       console.log('Dados recebidos:', data);
-      
-      let processedProducts: Product[];
-      
-      if (showPurchased) {
-        processedProducts = data.map((purchase: any) => ({
-          id: purchase.Product?.id || purchase.id,
-          name: purchase.Product?.name || purchase.name,
-          price: String(purchase.Product?.price || purchase.price),
-          description: purchase.Product?.description || purchase.description || '',
-          region: purchase.Product?.region || purchase.region,
-          createdAt: purchase.Product?.createdAt || purchase.createdAt,
-          updatedAt: purchase.Product?.updatedAt || purchase.updatedAt
-        }));
-      } else {
-        processedProducts = data.map((product: any) => ({
-          id: product.id,
-          name: product.name,
-          price: String(product.price),
-          description: product.description || '',
-          region: product.region,
-          createdAt: product.createdAt,
-          updatedAt: product.updatedAt
-        }));
+
+      if (!data || typeof data !== 'object') {
+        throw new Error('Dados inválidos recebidos do servidor');
       }
+
+      const dataArray = Array.isArray(data) ? data : [data];
       
+      const processedProducts = dataArray.map(item => {
+        const productData = showPurchased ? (item.Product || item) : item;
+        return {
+          id: productData.id,
+          name: productData.name,
+          price: String(productData.price),
+          description: productData.description || '',
+          region: productData.region || '',
+          createdAt: productData.createdAt,
+          updatedAt: productData.updatedAt
+        };
+      });
+
       console.log('Produtos processados:', processedProducts);
       setProducts(processedProducts);
       setError(null);

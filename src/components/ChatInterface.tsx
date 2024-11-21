@@ -1,51 +1,76 @@
-import React, { useState, useEffect } from 'react';
-import { MessageCircle, Send, Minimize2 } from 'lucide-react';
-import { ChatMessage, Product } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { Send, X, MessageCircle } from 'lucide-react';
+import { Product } from '../types';
 
 interface ChatInterfaceProps {
   supportProduct?: Product;
 }
 
+interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'user' | 'bot';
+  timestamp: Date;
+  options?: string[];
+}
+
 export default function ChatInterface({ supportProduct }: ChatInterfaceProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const [isMinimized, setIsMinimized] = useState(false);
   const [awaitingOptionSelection, setAwaitingOptionSelection] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Efeito para iniciar chat quando um produto é selecionado
   useEffect(() => {
-    if (supportProduct) {
-      setIsMinimized(false);
-      setInput(`Gostaria de uma ajuda sobre o produto ${supportProduct.name}`);
-      setAwaitingOptionSelection(false);
+    if (supportProduct && !isOpen) {
+      setIsOpen(true);
+      const initialMessage: ChatMessage = {
+        id: Date.now().toString(),
+        text: `Olá! Gostaria de falar sobre o produto "${supportProduct.name}"`,
+        sender: 'user',
+        timestamp: new Date(),
+      };
+      
+      setMessages([initialMessage]);
+      
+      // Resposta do bot com opções
+      setTimeout(() => {
+        const options = [
+          'Problemas técnicos',
+          'Informações adicionais',
+          'Garantia',
+          'Devolução',
+          'Outros assuntos'
+        ];
+
+        const botResponse: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          text: `Como posso ajudar você com o ${supportProduct.name}? Escolha uma opção:`,
+          sender: 'bot',
+          timestamp: new Date(),
+          options: options
+        };
+        setMessages(prev => [...prev, botResponse]);
+        setAwaitingOptionSelection(true);
+      }, 1000);
     }
   }, [supportProduct]);
 
-  useEffect(() => {
-    // Mensagem inicial do bot
-    setMessages([
-      {
-        id: '1',
-        text: 'Olá! Como posso ajudar você hoje?',
-        sender: 'bot',
-        timestamp: new Date(),
-      },
-    ]);
-  }, []);
-
   const handleSupportOptions = () => {
     const options = [
-      'Como usar o produto',
       'Problemas técnicos',
+      'Informações adicionais',
       'Garantia',
-      'Troca ou devolução',
+      'Devolução',
+      'Outros assuntos'
     ];
 
     const optionsMessage: ChatMessage = {
       id: Date.now().toString(),
-      text: 'Por favor, selecione uma opção:',
+      text: options.join('|'),
       sender: 'bot',
       timestamp: new Date(),
-      options,
     };
 
     setMessages(prev => [...prev, optionsMessage]);
@@ -94,29 +119,20 @@ export default function ChatInterface({ supportProduct }: ChatInterfaceProps) {
     }
   };
 
-  if (isMinimized) {
-    return (
-      <button
-        onClick={() => setIsMinimized(false)}
-        className="fixed bottom-4 right-4 bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 transition-colors"
-      >
-        <MessageCircle size={24} />
-      </button>
-    );
-  }
-
   return (
-    <div className="fixed bottom-4 right-4 w-96 h-[600px] bg-white rounded-lg shadow-xl flex flex-col">
+    <div className={`fixed bottom-4 right-4 w-96 bg-gray-800 rounded-lg shadow-xl transition-all duration-300 ${
+      isOpen ? 'h-[600px]' : 'h-16'
+    }`}>
       <div className="bg-indigo-600 p-4 rounded-t-lg flex items-center justify-between">
         <div className="flex items-center gap-2">
           <MessageCircle className="text-white" />
           <h2 className="text-white font-semibold">Suporte ao Cliente</h2>
         </div>
         <button
-          onClick={() => setIsMinimized(true)}
+          onClick={() => setIsOpen(false)}
           className="text-white hover:text-gray-200 transition-colors"
         >
-          <Minimize2 size={20} />
+          <X size={20} />
         </button>
       </div>
       
@@ -144,7 +160,7 @@ export default function ChatInterface({ supportProduct }: ChatInterfaceProps) {
                   <button
                     key={option}
                     onClick={() => handleOptionSelect(option)}
-                    className="w-full text-left p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                    className="w-full text-left p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-gray-800"
                   >
                     {option}
                   </button>

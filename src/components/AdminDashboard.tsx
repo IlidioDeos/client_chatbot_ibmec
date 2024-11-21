@@ -49,7 +49,8 @@ export default function AdminDashboard() {
   const fetchReport = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3000/api/purchases/report');
+      const API_URL = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${API_URL}/api/purchases/report`);
       if (!response.ok) throw new Error('Erro ao carregar relatório');
       const data = await response.json();
       setReport(data);

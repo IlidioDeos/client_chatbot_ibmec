@@ -12,6 +12,11 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+interface Product {
+  name: string;
+  price: number;
+}
+
 interface PurchaseReport {
   summary: {
     total_revenue: number;
@@ -23,15 +28,10 @@ interface PurchaseReport {
     total_purchases: number;
     total_revenue: number;
     average_purchase: number;
-    Product: {
-      name: string;
-    };
+    Product: Product;
   }>;
   product_stats: Array<{
-    product: {
-      name: string;
-      price: number;
-    };
+    product: Product;
     total_revenue: number;
     total_purchases: number;
   }>;
@@ -46,12 +46,10 @@ export default function AdminDashboard() {
     const envUrl = import.meta.env.VITE_API_URL;
     if (envUrl) return envUrl;
     
-    // Se estiver em produção (railway.app), use a URL do backend em produção
     if (window.location.hostname.includes('railway.app')) {
       return 'https://serverchatbotibmec-production.up.railway.app';
     }
     
-    // Em desenvolvimento local
     return 'http://localhost:3000';
   };
 
@@ -73,23 +71,24 @@ export default function AdminDashboard() {
         }
       });
       
-      console.log('Status:', response.status);
-      console.log('Headers:', Object.fromEntries(response.headers));
-      
       if (!response.ok) {
-        const text = await response.text();
-        console.error('Resposta de erro:', text);
         throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error(`Tipo de conteúdo inválido: ${contentType}`);
       }
       
       const data = await response.json();
       console.log('Dados recebidos:', data);
-      setReport(data);
+      
+      const defaultReport: PurchaseReport = {
+        summary: {
+          total_revenue: 0,
+          total_purchases: 0,
+          average_purchase: 0
+        },
+        daily_stats: [],
+        product_stats: []
+      };
+
+      setReport(data || defaultReport);
       setError(null);
     } catch (err) {
       console.error('Erro ao carregar relatório:', err);
@@ -105,19 +104,7 @@ export default function AdminDashboard() {
 
   if (loading) return <div className="text-center py-8">Carregando...</div>;
   if (error) return <div className="text-center text-red-500 py-8">{error}</div>;
-  
-  // Garantir que temos um objeto de relatório válido mesmo quando vazio
-  const defaultReport: PurchaseReport = {
-    summary: {
-      total_revenue: 0,
-      total_purchases: 0,
-      average_purchase: 0
-    },
-    daily_stats: [],
-    product_stats: []
-  };
-
-  const report = data || defaultReport;
+  if (!report) return <div className="text-center py-8">Nenhum dado disponível</div>;
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', {

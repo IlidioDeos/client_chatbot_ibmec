@@ -1,29 +1,32 @@
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:18-alpine as builder
 
 WORKDIR /app
 
 # Copiar arquivos de dependência
 COPY package*.json ./
+
+# Instalar dependências
 RUN npm ci
 
-# Copiar código fonte
+# Copiar o resto dos arquivos
 COPY . .
 
-# Fazer build
+# Criar arquivo .env.production
+RUN echo "VITE_API_URL=https://serverchatbotibmec-production.up.railway.app" > .env.production
+
+# Build da aplicação
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine
+FROM nginx:alpine
 
-WORKDIR /app
+# Copiar arquivos de build
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Instalar serve globalmente
-RUN npm install -g serve
+# Copiar configuração do nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copiar apenas os arquivos necessários do build
-COPY --from=builder /app/dist ./dist
+EXPOSE 80
 
-EXPOSE 3000
-
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["nginx", "-g", "daemon off;"]

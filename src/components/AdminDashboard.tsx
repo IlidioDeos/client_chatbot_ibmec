@@ -105,7 +105,19 @@ export default function AdminDashboard() {
 
   if (loading) return <div className="text-center py-8">Carregando...</div>;
   if (error) return <div className="text-center text-red-500 py-8">{error}</div>;
-  if (!report) return <div className="text-center py-8">Nenhum dado disponível</div>;
+  
+  // Garantir que temos um objeto de relatório válido mesmo quando vazio
+  const defaultReport: PurchaseReport = {
+    summary: {
+      total_revenue: 0,
+      total_purchases: 0,
+      average_purchase: 0
+    },
+    daily_stats: [],
+    product_stats: []
+  };
+
+  const report = data || defaultReport;
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', {

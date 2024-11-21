@@ -56,29 +56,29 @@ export default function ProductList({
       const data = await response.json();
       console.log('Dados recebidos:', data);
       
-      if (!Array.isArray(data)) {
-        throw new Error('Formato de dados inválido');
+      let processedProducts: Product[];
+      
+      if (showPurchased) {
+        processedProducts = data.map((purchase: any) => ({
+          id: purchase.Product?.id || purchase.id,
+          name: purchase.Product?.name || purchase.name,
+          price: String(purchase.Product?.price || purchase.price),
+          description: purchase.Product?.description || purchase.description,
+          region: purchase.Product?.region || purchase.region,
+          createdAt: purchase.Product?.createdAt || purchase.createdAt,
+          updatedAt: purchase.Product?.updatedAt || purchase.updatedAt
+        }));
+      } else {
+        processedProducts = data.map((product: any) => ({
+          id: product.id,
+          name: product.name,
+          price: String(product.price),
+          description: product.description,
+          region: product.region,
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt
+        }));
       }
-
-      const processedProducts = showPurchased
-        ? data.map((purchase: any) => ({
-            id: purchase.Product.id,
-            name: purchase.Product.name,
-            price: String(purchase.Product.price),
-            description: purchase.Product.description,
-            region: purchase.Product.region,
-            createdAt: purchase.Product.createdAt,
-            updatedAt: purchase.Product.updatedAt
-          }))
-        : data.map((product: any) => ({
-            id: product.id,
-            name: product.name,
-            price: String(product.price),
-            description: product.description,
-            region: product.region,
-            createdAt: product.createdAt,
-            updatedAt: product.updatedAt
-          }));
       
       console.log('Produtos processados:', processedProducts);
       setProducts(processedProducts);

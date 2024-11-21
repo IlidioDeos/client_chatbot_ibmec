@@ -21,6 +21,8 @@ export default function ProductList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
     fetchProducts();
   }, [showPurchased]);
@@ -29,8 +31,8 @@ export default function ProductList({
     try {
       setLoading(true);
       const endpoint = showPurchased
-        ? `http://localhost:3000/api/purchases?customerId=${userEmail}`
-        : 'http://localhost:3000/api/products';
+        ? `${API_URL}/api/purchases?customerId=${userEmail}`
+        : `${API_URL}/api/products`;
       const response = await fetch(endpoint);
       if (!response.ok) throw new Error('Erro ao carregar produtos');
       const data = await response.json();
@@ -44,7 +46,7 @@ export default function ProductList({
 
   const handlePurchase = async (product: Product) => {
     try {
-      const response = await fetch('http://localhost:3000/api/purchases', {
+      const response = await fetch(`${API_URL}/api/purchases`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +69,7 @@ export default function ProductList({
         onPurchaseComplete(data.newBalance);
       } else {
         // Se não receber o novo saldo, buscar o saldo atualizado
-        const balanceResponse = await fetch(`http://localhost:3000/api/customers/${userEmail}/balance`);
+        const balanceResponse = await fetch(`${API_URL}/api/customers/${userEmail}/balance`);
         if (balanceResponse.ok) {
           const balanceData = await balanceResponse.json();
           onPurchaseComplete(balanceData.balance);

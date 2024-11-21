@@ -30,14 +30,35 @@ export default function ProductList({
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      const apiUrl = import.meta.env.VITE_API_URL;
+      
       const endpoint = showPurchased
-        ? `${API_URL}/api/purchases?customerId=${userEmail}`
-        : `${API_URL}/api/products`;
+        ? `${apiUrl}/api/purchases/customer/${encodeURIComponent(userEmail)}`
+        : `${apiUrl}/api/products`;
+      
+      console.log('Fazendo requisição para:', endpoint);
+      
       const response = await fetch(endpoint);
-      if (!response.ok) throw new Error('Erro ao carregar produtos');
+      console.log('Status:', response.status);
+      console.log('Headers:', Object.fromEntries(response.headers));
+      
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('Resposta de erro:', text);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error(`Tipo de conteúdo inválido: ${contentType}`);
+      }
+      
       const data = await response.json();
+      console.log('Dados recebidos:', data);
+      
       setProducts(showPurchased ? data.map((p: any) => p.Product) : data);
     } catch (err) {
+      console.error('Erro ao buscar produtos:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
       setLoading(false);

@@ -49,12 +49,30 @@ export default function AdminDashboard() {
   const fetchReport = async () => {
     try {
       setLoading(true);
-      const API_URL = import.meta.env.VITE_API_URL;
-      const response = await fetch(`${API_URL}/api/purchases/report`);
-      if (!response.ok) throw new Error('Erro ao carregar relatório');
+      const apiUrl = import.meta.env.VITE_API_URL;
+      
+      console.log('Fazendo requisição para:', `${apiUrl}/api/purchases/report`);
+      
+      const response = await fetch(`${apiUrl}/api/purchases/report`);
+      console.log('Status:', response.status);
+      console.log('Headers:', Object.fromEntries(response.headers));
+      
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('Resposta de erro:', text);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error(`Tipo de conteúdo inválido: ${contentType}`);
+      }
+      
       const data = await response.json();
+      console.log('Dados recebidos:', data);
       setReport(data);
     } catch (err) {
+      console.error('Erro ao carregar relatório:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
     } finally {
       setLoading(false);

@@ -117,13 +117,19 @@ export default function ProductList({
       }
 
       const data = await response.json();
-      if (data.newBalance) {
+      console.log('Resposta da compra:', data);
+      
+      if (data.newBalance !== undefined) {
+        console.log('Novo saldo:', data.newBalance);
         onPurchaseComplete(Number(data.newBalance));
+      } else {
+        console.warn('Novo saldo não recebido na resposta');
       }
       
       await fetchProducts();
       alert('Compra realizada com sucesso!');
     } catch (err) {
+      console.error('Erro na compra:', err);
       alert(err instanceof Error ? err.message : 'Erro ao realizar compra');
     }
   };

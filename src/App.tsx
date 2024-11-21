@@ -75,10 +75,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (user?.role === 'customer' && user?.email) {
+    if (user?.email && user.role === 'customer') {
       fetchBalance(user.email);
     }
-  }, [user, fetchBalance]);
+  }, [user?.email, fetchBalance]);
 
   const handleLogin = (userData: { email: string; role: string }) => {
     setUser(userData);
@@ -94,21 +94,22 @@ export default function App() {
     setSelectedProduct(undefined);
   };
 
-  const handlePurchaseComplete = (newBalance: number) => {
+  const handlePurchaseComplete = useCallback((newBalance: number) => {
+    console.log('Atualizando saldo para:', newBalance);
     setBalance(newBalance);
-  };
+  }, []);
 
   if (!user) {
     return <Login onLogin={handleLogin} />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-indigo-600 text-white p-4">
-        <div className="container mx-auto flex justify-between items-center">
+    <div className="min-h-screen bg-gray-900 text-white">
+      <nav className="bg-gray-800 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-6">
-            <h1 className="text-xl font-bold">E-commerce System</h1>
-            {user.role === 'customer' ? (
+            <h1 className="text-xl font-bold">E-commerce</h1>
+            {user?.role === 'customer' ? (
               <>
                 <button
                   onClick={() => setShowPurchased(false)}
@@ -131,15 +132,15 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-6">
-            {user.role === 'customer' && balance !== null && (
+            {user?.role === 'customer' && balance !== null && (
               <div className="flex items-center gap-2">
                 <Wallet className="h-5 w-5" />
                 <span className="font-medium">
-                  R$ {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  R$ {Number(balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
             )}
-            <span className="text-gray-200">{user.email}</span>
+            <span className="text-gray-200">{user?.email}</span>
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 hover:text-gray-200 transition-colors"
@@ -152,7 +153,9 @@ export default function App() {
       </nav>
 
       <main className="container mx-auto py-8">
-        {user.role === 'admin' ? (
+        {!user ? (
+          <Login onLogin={setUser} />
+        ) : user.role === 'admin' ? (
           <AdminDashboard />
         ) : (
           <ProductList
@@ -164,7 +167,7 @@ export default function App() {
           />
         )}
       </main>
-      {user.role === 'customer' && (
+      {user?.role === 'customer' && (
         <ChatInterface supportProduct={selectedProduct} />
       )}
     </div>

@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { ShoppingCart, MessageCircle } from 'lucide-react';
 
+interface Product {
+  id: string;
+  name: string;
+  price: string | number;
+  description: string;
+  region: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface ProductListProps {
   showPurchased: boolean;
   selectedProduct: Product | undefined;
@@ -53,39 +63,37 @@ export default function ProductList({
       
       console.log('Fazendo requisição para:', endpoint);
       
-      const response = await fetch(endpoint, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-      
+      const response = await fetch(endpoint);
       console.log('Status:', response.status);
       console.log('Headers:', Object.fromEntries(response.headers));
       
       if (!response.ok) {
-        const text = await response.text();
-        console.error('Resposta de erro:', text);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
       console.log('Dados recebidos:', data);
       
+      let processedProducts: Product[];
+      
       if (showPurchased) {
         // Para compras, cada item deve ter uma propriedade Product
-        const processedProducts = data
-          .filter(purchase => purchase && purchase.Product)
-          .map(purchase => purchase.Product);
-        console.log('Produtos processados (compras):', processedProducts);
-        setProducts(processedProducts);
+        processedProducts = data
+          .filter((purchase: any) => purchase && purchase.Product)
+          .map((purchase: any) => ({
+            ...purchase.Product,
+            price: String(purchase.Product.price) // Garantir que price seja string
+          }));
       } else {
-        // Para listagem de produtos, usar os dados diretamente
-        console.log('Produtos processados (listagem):', data);
-        setProducts(data);
+        // Para listagem de produtos, converter os dados para o formato correto
+        processedProducts = data.map((product: any) => ({
+          ...product,
+          price: String(product.price) // Garantir que price seja string
+        }));
       }
       
+      console.log('Produtos processados:', processedProducts);
+      setProducts(processedProducts);
       setError(null);
     } catch (err) {
       console.error('Erro ao buscar produtos:', err);

@@ -15,7 +15,7 @@ export default function App() {
   const fetchBalance = useCallback(async () => {
     if (user && user.role === 'customer') {
       try {
-        const response = await fetch(`http://localhost:3000/api/customers/${user.email}/balance`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/customers/${email}/balance`);
         if (response.ok) {
           const data = await response.json();
           setBalance(data.balance);

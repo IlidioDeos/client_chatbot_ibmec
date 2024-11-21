@@ -160,7 +160,11 @@ export default function ProductList({
           <span className="text-lg font-medium">
             R$ {Number(product.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </span>
-          <span className="text-sm text-gray-400">Região: {product.region}</span>
+          {product.region && (
+            <span className="text-sm text-gray-400">
+              Região: {product.region}
+            </span>
+          )}
         </div>
         
         <div className="flex gap-2 justify-end">

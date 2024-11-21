@@ -21,7 +21,18 @@ export default function ProductList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL;
+  const getApiUrl = () => {
+    const envUrl = import.meta.env.VITE_API_URL;
+    if (envUrl) return envUrl;
+    
+    // Se estiver em produção (railway.app), use a URL do backend em produção
+    if (window.location.hostname.includes('railway.app')) {
+      return 'https://serverchatbotibmec-production.up.railway.app';
+    }
+    
+    // Em desenvolvimento local
+    return 'http://localhost:3000';
+  };
 
   useEffect(() => {
     fetchProducts();
@@ -30,15 +41,26 @@ export default function ProductList({
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const apiUrl = import.meta.env.VITE_API_URL;
+      const apiUrl = getApiUrl();
       
+      if (!apiUrl) {
+        throw new Error('API URL não configurada');
+      }
+
       const endpoint = showPurchased
         ? `${apiUrl}/api/purchases/customer/${encodeURIComponent(userEmail)}`
         : `${apiUrl}/api/products`;
       
       console.log('Fazendo requisição para:', endpoint);
       
-      const response = await fetch(endpoint);
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
       console.log('Status:', response.status);
       console.log('Headers:', Object.fromEntries(response.headers));
       

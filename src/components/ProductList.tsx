@@ -70,15 +70,30 @@ export default function ProductList({
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error(`Tipo de conteúdo inválido: ${contentType}`);
-      }
-      
       const data = await response.json();
       console.log('Dados recebidos:', data);
       
-      setProducts(showPurchased ? data.map((p: any) => p.Product) : data);
+      // Garantir que data é um array antes de usar map
+      if (!Array.isArray(data)) {
+        console.error('Dados recebidos não são um array:', data);
+        throw new Error('Formato de dados inválido');
+      }
+      
+      // Tratar os dados de acordo com o tipo de listagem
+      if (showPurchased) {
+        // Para compras, cada item deve ter uma propriedade Product
+        const products = data.map(purchase => {
+          if (!purchase.Product) {
+            console.error('Compra sem produto:', purchase);
+            return null;
+          }
+          return purchase.Product;
+        }).filter(product => product !== null);
+        setProducts(products);
+      } else {
+        // Para produtos, usar diretamente o array
+        setProducts(data);
+      }
     } catch (err) {
       console.error('Erro ao buscar produtos:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
@@ -89,10 +104,16 @@ export default function ProductList({
 
   const handlePurchase = async (product: Product) => {
     try {
-      const response = await fetch(`${API_URL}/api/purchases`, {
+      const apiUrl = getApiUrl();
+      if (!apiUrl) {
+        throw new Error('API URL não configurada');
+      }
+
+      const response = await fetch(`${apiUrl}/api/purchases`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           productId: product.id,
@@ -112,7 +133,7 @@ export default function ProductList({
         onPurchaseComplete(data.newBalance);
       } else {
         // Se não receber o novo saldo, buscar o saldo atualizado
-        const balanceResponse = await fetch(`${API_URL}/api/customers/${userEmail}/balance`);
+        const balanceResponse = await fetch(`${apiUrl}/api/customers/${encodeURIComponent(userEmail)}/balance`);
         if (balanceResponse.ok) {
           const balanceData = await balanceResponse.json();
           onPurchaseComplete(balanceData.balance);

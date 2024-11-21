@@ -7,34 +7,41 @@ import { User, Product } from './types';
 import { LogOut, Wallet } from 'lucide-react';
 
 export default function App() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<{ email: string; role: string } | null>(null);
   const [showPurchased, setShowPurchased] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>();
   const [balance, setBalance] = useState<number | null>(null);
 
-  const fetchBalance = useCallback(async () => {
-    if (user && user.role === 'customer') {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/customers/${email}/balance`);
-        if (response.ok) {
-          const data = await response.json();
-          setBalance(data.balance);
-        }
-      } catch (error) {
-        console.error('Erro ao buscar saldo:', error);
+  const fetchBalance = useCallback(async (userEmail: string) => {
+    try {
+      console.log('Buscando saldo para:', userEmail);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/customers/${encodeURIComponent(userEmail)}/balance`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+      
+      const data = await response.json();
+      console.log('Saldo recebido:', data);
+      setBalance(data.balance);
+    } catch (error) {
+      console.error('Erro ao buscar saldo:', error);
     }
-  }, [user]);
+  }, []);
 
+  useEffect(() => {
+    if (user?.role === 'customer' && user?.email) {
+      fetchBalance(user.email);
+    }
+  }, [user, fetchBalance]);
 
-  const handleLogin = async (email: string, role: 'admin' | 'customer') => {
-    const newUser = {
-      id: email,
-      email,
-      name: email.split('@')[0],
-      role,
-    };
-    setUser(newUser);
+  const handleLogin = (userData: { email: string; role: string }) => {
+    setUser(userData);
+    if (userData.role === 'customer') {
+      fetchBalance(userData.email);
+    }
   };
 
   const handleLogout = () => {
@@ -43,11 +50,6 @@ export default function App() {
     setShowPurchased(false);
     setSelectedProduct(undefined);
   };
-
-  // Buscar saldo quando o usuário fizer login
-  useEffect(() => {
-    fetchBalance();
-  }, [user, fetchBalance]);
 
   const handlePurchaseComplete = (newBalance: number) => {
     setBalance(newBalance);

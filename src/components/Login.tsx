@@ -2,18 +2,24 @@ import React, { useState } from 'react';
 import { LogIn, Info } from 'lucide-react';
 
 interface LoginProps {
-  onLogin: (email: string, role: 'admin' | 'customer') => void;
+  onLogin: (userData: { email: string; role: string }) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState('');
   const [showInfo, setShowInfo] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simples verificação para determinar o papel do usuário
-    const role = email.includes('admin') ? 'admin' : 'customer';
-    onLogin(email, role);
+    const email = (e.target as any).email.value;
+    
+    // Determinar o papel do usuário
+    const role = email === 'admin@example.com' ? 'admin' : 'customer';
+    
+    // Log para debug
+    console.log('Login attempt:', { email, role });
+    
+    onLogin({ email, role });
   };
 
   return (
@@ -54,7 +60,7 @@ export default function Login({ onLogin }: LoginProps) {
               Digite seu e-mail para continuar
             </p>
           </div>
-          <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 E-mail

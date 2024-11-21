@@ -42,18 +42,37 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchReport();
-  }, []);
+  const getApiUrl = () => {
+    const envUrl = import.meta.env.VITE_API_URL;
+    if (envUrl) return envUrl;
+    
+    // Se estiver em produção (railway.app), use a URL do backend em produção
+    if (window.location.hostname.includes('railway.app')) {
+      return 'https://serverchatbotibmec-production.up.railway.app';
+    }
+    
+    // Em desenvolvimento local
+    return 'http://localhost:3000';
+  };
 
   const fetchReport = async () => {
     try {
       setLoading(true);
-      const apiUrl = import.meta.env.VITE_API_URL;
+      const apiUrl = getApiUrl();
       
+      if (!apiUrl) {
+        throw new Error('API URL não configurada');
+      }
+
       console.log('Fazendo requisição para:', `${apiUrl}/api/purchases/report`);
       
-      const response = await fetch(`${apiUrl}/api/purchases/report`);
+      const response = await fetch(`${apiUrl}/api/purchases/report`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
       console.log('Status:', response.status);
       console.log('Headers:', Object.fromEntries(response.headers));
       
@@ -71,6 +90,7 @@ export default function AdminDashboard() {
       const data = await response.json();
       console.log('Dados recebidos:', data);
       setReport(data);
+      setError(null);
     } catch (err) {
       console.error('Erro ao carregar relatório:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
@@ -78,6 +98,10 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchReport();
+  }, []);
 
   if (loading) return <div className="text-center py-8">Carregando...</div>;
   if (error) return <div className="text-center text-red-500 py-8">{error}</div>;

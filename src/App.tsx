@@ -12,14 +12,32 @@ export default function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>();
   const [balance, setBalance] = useState<number | null>(null);
 
+  const getApiUrl = () => {
+    const envUrl = import.meta.env.VITE_API_URL;
+    if (envUrl) return envUrl;
+    
+    // Se estiver em produção (railway.app), use a URL do backend em produção
+    if (window.location.hostname.includes('railway.app')) {
+      return 'https://serverchatbotibmec-production.up.railway.app';
+    }
+    
+    // Em desenvolvimento local
+    return 'http://localhost:3000';
+  };
+
   const fetchBalance = useCallback(async (userEmail: string) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const apiUrl = getApiUrl();
+      if (!apiUrl) {
+        console.error('VITE_API_URL não está definida');
+        throw new Error('API URL não configurada');
+      }
+
       console.log('Configuração atual:', {
         apiUrl,
         isDev: import.meta.env.DEV,
         mode: import.meta.env.MODE,
-        allEnv: import.meta.env // para debug
+        baseUrl: window.location.origin
       });
       
       const url = `${apiUrl}/api/customers/${encodeURIComponent(userEmail)}/balance`;

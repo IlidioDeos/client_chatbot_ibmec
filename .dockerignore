@@ -1,8 +1,10 @@
 node_modules
-dist
 .git
 .gitignore
-README.md
+*.md
 .env
-.env.local
-.env.development
+.env.*
+dist
+build
+coverage
+.DS_Store

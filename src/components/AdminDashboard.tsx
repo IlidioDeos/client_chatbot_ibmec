@@ -12,11 +12,6 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-interface Product {
-  name: string;
-  price: number;
-}
-
 interface PurchaseReport {
   summary: {
     total_revenue: number;
@@ -28,10 +23,15 @@ interface PurchaseReport {
     total_purchases: number;
     total_revenue: number;
     average_purchase: number;
-    Product: Product;
+    Product: {
+      name: string;
+    };
   }>;
   product_stats: Array<{
-    product: Product;
+    product: {
+      name: string;
+      price: number;
+    };
     total_revenue: number;
     total_purchases: number;
   }>;
@@ -42,54 +42,35 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const getApiUrl = () => {
-    const envUrl = import.meta.env.VITE_API_URL;
-    if (envUrl) return envUrl;
-    
-    if (window.location.hostname.includes('railway.app')) {
-      return 'https://serverchatbotibmec-production.up.railway.app';
-    }
-    
-    return 'http://localhost:3000';
-  };
+  useEffect(() => {
+    fetchReport();
+  }, []);
 
   const fetchReport = async () => {
     try {
       setLoading(true);
-      const apiUrl = getApiUrl();
+      const apiUrl = import.meta.env.VITE_API_URL;
       
-      if (!apiUrl) {
-        throw new Error('API URL não configurada');
-      }
-
       console.log('Fazendo requisição para:', `${apiUrl}/api/purchases/report`);
       
-      const response = await fetch(`${apiUrl}/api/purchases/report`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await fetch(`${apiUrl}/api/purchases/report`);
+      console.log('Status:', response.status);
+      console.log('Headers:', Object.fromEntries(response.headers));
       
       if (!response.ok) {
+        const text = await response.text();
+        console.error('Resposta de erro:', text);
         throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error(`Tipo de conteúdo inválido: ${contentType}`);
       }
       
       const data = await response.json();
       console.log('Dados recebidos:', data);
-      
-      const defaultReport: PurchaseReport = {
-        summary: {
-          total_revenue: 0,
-          total_purchases: 0,
-          average_purchase: 0
-        },
-        daily_stats: [],
-        product_stats: []
-      };
-
-      setReport(data || defaultReport);
-      setError(null);
+      setReport(data);
     } catch (err) {
       console.error('Erro ao carregar relatório:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
@@ -97,10 +78,6 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchReport();
-  }, []);
 
   if (loading) return <div className="text-center py-8">Carregando...</div>;
   if (error) return <div className="text-center text-red-500 py-8">{error}</div>;

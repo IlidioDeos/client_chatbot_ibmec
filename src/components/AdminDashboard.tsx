@@ -1,16 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from 'recharts';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useEffect, useState } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { getApiUrl } from '../utils/api';
 
 interface PurchaseReport {
   summary: {
@@ -25,12 +15,14 @@ interface PurchaseReport {
     average_purchase: number;
     Product: {
       name: string;
+      price: string;
     };
   }>;
   product_stats: Array<{
     product: {
+      id: string;
       name: string;
-      price: number;
+      price: string;
     };
     total_revenue: number;
     total_purchases: number;
@@ -49,11 +41,23 @@ export default function AdminDashboard() {
   const fetchReport = async () => {
     try {
       setLoading(true);
-      const apiUrl = import.meta.env.VITE_API_URL;
+      const apiUrl = getApiUrl();
       
-      console.log('Fazendo requisição para:', `${apiUrl}/api/purchases/report`);
+      if (!apiUrl) {
+        throw new Error('API URL não configurada');
+      }
+
+      const endpoint = `${apiUrl}/api/purchases/report`;
+      console.log('Fazendo requisição para:', endpoint);
       
-      const response = await fetch(`${apiUrl}/api/purchases/report`);
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
       console.log('Status:', response.status);
       console.log('Headers:', Object.fromEntries(response.headers));
       
@@ -70,7 +74,13 @@ export default function AdminDashboard() {
       
       const data = await response.json();
       console.log('Dados recebidos:', data);
+      
+      if (!data || typeof data !== 'object') {
+        throw new Error('Formato de dados inválido');
+      }
+      
       setReport(data);
+      setError(null);
     } catch (err) {
       console.error('Erro ao carregar relatório:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
@@ -79,121 +89,87 @@ export default function AdminDashboard() {
     }
   };
 
-  if (loading) return <div className="text-center py-8">Carregando...</div>;
-  if (error) return <div className="text-center text-red-500 py-8">{error}</div>;
-  if (!report) return <div className="text-center py-8">Nenhum dado disponível</div>;
+  if (loading) {
+    return <div className="text-center py-8">Carregando relatório...</div>;
+  }
 
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    });
-  };
+  if (error) {
+    return (
+      <div className="text-center py-8 text-red-500">
+        Erro ao carregar relatório: {error}
+      </div>
+    );
+  }
+
+  if (!report) {
+    return <div className="text-center py-8">Nenhum dado disponível</div>;
+  }
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-8">Dashboard Administrativo</h1>
-
-      {/* Resumo */}
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-6">Dashboard Administrativo</h2>
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-gray-800 p-6 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Total de Vendas</h3>
-          <p className="text-3xl font-bold text-indigo-600">
-            {report.summary.total_purchases}
-          </p>
+          <p className="text-2xl">{report.summary.total_purchases}</p>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-gray-800 p-6 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Receita Total</h3>
-          <p className="text-3xl font-bold text-indigo-600">
-            {formatCurrency(report.summary.total_revenue)}
+          <p className="text-2xl">
+            R$ {report.summary.total_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-gray-800 p-6 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Ticket Médio</h3>
-          <p className="text-3xl font-bold text-indigo-600">
-            {formatCurrency(report.summary.average_purchase)}
+          <p className="text-2xl">
+            R$ {report.summary.average_purchase.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         </div>
       </div>
 
-      {/* Gráfico de Vendas por Dia */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 className="text-xl font-semibold mb-4">Vendas por Dia</h2>
-        <div className="h-[400px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={report.daily_stats}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="date"
-                tickFormatter={(date) =>
-                  formatDistanceToNow(new Date(date), {
-                    addSuffix: true,
-                    locale: ptBR,
-                  })
-                }
-              />
-              <YAxis />
-              <Tooltip
-                formatter={(value: number) => formatCurrency(value)}
-                labelFormatter={(date) =>
-                  new Date(date).toLocaleDateString('pt-BR')
-                }
-              />
-              <Legend />
-              <Bar
-                dataKey="total_revenue"
-                name="Receita"
-                fill="#4f46e5"
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                dataKey="total_purchases"
-                name="Vendas"
-                fill="#818cf8"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+      <div className="mb-8">
+        <h3 className="text-xl font-bold mb-4">Vendas por Produto</h3>
+        <div className="overflow-x-auto">
+          <BarChart
+            width={600}
+            height={300}
+            data={report.product_stats}
+            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="product.name" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="total_purchases" fill="#8884d8" name="Quantidade Vendida" />
+            <Bar dataKey="total_revenue" fill="#82ca9d" name="Receita Total" />
+          </BarChart>
         </div>
       </div>
 
-      {/* Tabela de Produtos */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <h2 className="text-xl font-semibold p-6 bg-gray-50 border-b">
-          Desempenho por Produto
-        </h2>
+      <div>
+        <h3 className="text-xl font-bold mb-4">Detalhes por Produto</h3>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="min-w-full bg-gray-800">
             <thead>
-              <tr className="bg-gray-50">
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">
-                  Produto
-                </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-gray-600">
-                  Preço
-                </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-gray-600">
-                  Vendas
-                </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-gray-600">
-                  Receita
-                </th>
+              <tr>
+                <th className="px-6 py-3 text-left">Produto</th>
+                <th className="px-6 py-3 text-left">Preço</th>
+                <th className="px-6 py-3 text-left">Vendas</th>
+                <th className="px-6 py-3 text-left">Receita</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {report.product_stats.map((stat, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {stat.product.name}
+            <tbody>
+              {report.product_stats.map((stat) => (
+                <tr key={stat.product.id} className="border-t border-gray-700">
+                  <td className="px-6 py-4">{stat.product.name}</td>
+                  <td className="px-6 py-4">
+                    R$ {Number(stat.product.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 text-right">
-                    {formatCurrency(stat.product.price)}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 text-right">
-                    {stat.total_purchases}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 text-right">
-                    {formatCurrency(stat.total_revenue)}
+                  <td className="px-6 py-4">{stat.total_purchases}</td>
+                  <td className="px-6 py-4">
+                    R$ {stat.total_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
               ))}

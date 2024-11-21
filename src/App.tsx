@@ -26,6 +26,7 @@ export default function App() {
     }
   }, [user]);
 
+
   const handleLogin = async (email: string, role: 'admin' | 'customer') => {
     const newUser = {
       id: email,

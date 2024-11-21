@@ -3,25 +3,23 @@ FROM node:18-alpine as builder
 
 # Definir variáveis de ambiente para o npm
 ENV NODE_ENV=production
+ENV VITE_API_URL=https://serverchatbotibmec-production.up.railway.app
 
 WORKDIR /app
 
-# Copiar apenas os arquivos de dependência primeiro
+# Copiar package.json e package-lock.json
 COPY package*.json ./
 
-# Instalar dependências com flags específicas para produção
-RUN npm ci --only=production
+# Instalar todas as dependências (incluindo devDependencies para o build)
+RUN npm install
 
-# Copiar o resto dos arquivos
+# Copiar o resto dos arquivos do projeto
 COPY . .
-
-# Criar arquivo .env.production
-RUN echo "VITE_API_URL=https://serverchatbotibmec-production.up.railway.app" > .env.production
 
 # Build da aplicação
 RUN npm run build
 
-# Production stage com Nginx
+# Production stage
 FROM nginx:alpine
 
 # Copiar a configuração do nginx

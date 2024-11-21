@@ -56,21 +56,30 @@ export default function ProductList({
       const data = await response.json();
       console.log('Dados recebidos:', data);
       
-      if (!Array.isArray(data)) {
-        console.error('Dados recebidos não são um array:', data);
-        throw new Error('Formato de dados inválido');
+      let processedProducts: Product[];
+      
+      if (showPurchased) {
+        processedProducts = data.map((purchase: any) => ({
+          id: purchase.Product?.id || purchase.id,
+          name: purchase.Product?.name || purchase.name,
+          price: String(purchase.Product?.price || purchase.price),
+          description: purchase.Product?.description || purchase.description || '',
+          region: purchase.Product?.region || purchase.region,
+          createdAt: purchase.Product?.createdAt || purchase.createdAt,
+          updatedAt: purchase.Product?.updatedAt || purchase.updatedAt
+        }));
+      } else {
+        processedProducts = data.map((product: any) => ({
+          id: product.id,
+          name: product.name,
+          price: String(product.price),
+          description: product.description || '',
+          region: product.region,
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt
+        }));
       }
-
-      const processedProducts = data.map(item => ({
-        id: item.id,
-        name: item.name,
-        price: String(item.price),
-        description: item.description || '',
-        region: item.region,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt
-      }));
-
+      
       console.log('Produtos processados:', processedProducts);
       setProducts(processedProducts);
       setError(null);

@@ -73,19 +73,20 @@ export default function ProductList({
       const data = await response.json();
       console.log('Dados recebidos:', data);
       
-      // Verificar se data é um array ou se pode ser convertido em array
-      let products = Array.isArray(data) ? data : [];
-      
-      if (showPurchased && Array.isArray(data)) {
+      if (showPurchased) {
         // Para compras, cada item deve ter uma propriedade Product
-        products = data
+        const processedProducts = data
           .filter(purchase => purchase && purchase.Product)
           .map(purchase => purchase.Product);
+        console.log('Produtos processados (compras):', processedProducts);
+        setProducts(processedProducts);
+      } else {
+        // Para listagem de produtos, usar os dados diretamente
+        console.log('Produtos processados (listagem):', data);
+        setProducts(data);
       }
       
-      console.log('Produtos processados:', products);
-      setProducts(products);
-      setError(null); // Limpar qualquer erro anterior
+      setError(null);
     } catch (err) {
       console.error('Erro ao buscar produtos:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
@@ -146,38 +147,46 @@ export default function ProductList({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {products.map((product) => (
-        <div
-          key={product.id}
-          className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
-        >
-          <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
-          <p className="text-gray-600 mb-4">{product.description}</p>
-          <div className="flex justify-between items-center">
-            <span className="text-lg font-medium">
-              R$ {product.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </span>
-            <div className="flex gap-2">
-              {!showPurchased && (
-                <button
-                  onClick={() => handlePurchase(product)}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500 transition-colors"
-                >
-                  <ShoppingCart className="h-5 w-5" />
-                  <span>Comprar</span>
-                </button>
-              )}
-              <button
-                onClick={() => setSelectedProduct(product)}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-              >
-                <MessageCircle className="h-5 w-5" />
-                <span>Suporte</span>
-              </button>
+      {products.length === 0 ? (
+        <div className="col-span-full text-center py-8 text-gray-500">
+          {showPurchased ? 'Você ainda não comprou nenhum produto.' : 'Nenhum produto disponível.'}
+        </div>
+      ) : (
+        products.map((product) => (
+          <div
+            key={product.id}
+            className={`bg-white rounded-lg shadow-md overflow-hidden border-2 transition-colors ${
+              selectedProduct?.id === product.id ? 'border-indigo-500' : 'border-transparent'
+            }`}
+            onClick={() => setSelectedProduct(product)}
+          >
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{product.name}</h3>
+              <p className="text-gray-600 mb-4">{product.description}</p>
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-bold text-indigo-600">
+                  {Number(product.price).toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  })}
+                </span>
+                {!showPurchased && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePurchase(product);
+                    }}
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Comprar
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   );
 }

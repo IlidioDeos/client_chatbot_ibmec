@@ -15,12 +15,32 @@ export default function App() {
   const fetchBalance = useCallback(async (userEmail: string) => {
     try {
       console.log('Buscando saldo para:', userEmail);
+      console.log('API URL:', import.meta.env.VITE_API_URL);
+      
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/customers/${encodeURIComponent(userEmail)}/balance`
+        `${import.meta.env.VITE_API_URL}/api/customers/${encodeURIComponent(userEmail)}/balance`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        }
       );
       
+      console.log('Status da resposta:', response.status);
+      console.log('Headers da resposta:', Object.fromEntries(response.headers));
+      
       if (!response.ok) {
+        const text = await response.text();
+        console.error('Resposta de erro:', text);
         throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error(`Tipo de conteúdo inválido: ${contentType}`);
       }
       
       const data = await response.json();
@@ -28,6 +48,7 @@ export default function App() {
       setBalance(data.balance);
     } catch (error) {
       console.error('Erro ao buscar saldo:', error);
+      setBalance(null);
     }
   }, []);
 

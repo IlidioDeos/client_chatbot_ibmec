@@ -2,19 +2,23 @@ export interface Product {
   id: string;
   name: string;
   price: string;
-  description: string;
   region: string;
-  createdAt: string;
-  updatedAt: string;
+  description: string;
 }
 
-export interface Purchase {
+export interface PurchaseWithProduct {
   id: string;
-  ProductId: string;
-  CustomerId: string;
   quantity: number;
   totalPrice: string;
   createdAt: string;
   updatedAt: string;
-  Product?: Product;
+  Product: Product;
+}
+
+export interface ProductListProps {
+  showPurchased: boolean;
+  selectedProduct: Product | undefined;
+  setSelectedProduct: (product: Product | undefined) => void;
+  userEmail: string;
+  onPurchaseComplete: (newBalance: number) => void;
 } 

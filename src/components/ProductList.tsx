@@ -19,6 +19,7 @@ export default function ProductList({
 }: ProductListProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [purchasedProducts, setPurchasedProducts] = useState<PurchaseWithProduct[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const getApiUrl = () => {
@@ -62,26 +63,30 @@ export default function ProductList({
 
       const dataArray = Array.isArray(data) ? data : [data];
       
-      const processedProducts = dataArray.map(item => {
-        const productData = showPurchased ? (item.Product || item) : item;
-        return {
-          id: productData.id,
-          name: productData.name,
-          price: String(productData.price),
-          description: productData.description || '',
-          region: productData.region || '',
-          createdAt: productData.createdAt,
-          updatedAt: productData.updatedAt
-        };
-      });
+      if (showPurchased) {
+        setPurchasedProducts(dataArray);
+      } else {
+        const processedProducts = dataArray.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: String(item.price),
+          description: item.description || '',
+          region: item.region || '',
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt
+        }));
+        setProducts(processedProducts);
+      }
 
-      console.log('Produtos processados:', processedProducts);
-      setProducts(processedProducts);
       setError(null);
     } catch (err) {
       console.error('Erro ao buscar produtos:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
-      setProducts([]);
+      if (showPurchased) {
+        setPurchasedProducts([]);
+      } else {
+        setProducts([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -139,50 +144,65 @@ export default function ProductList({
     }
   };
 
-  if (loading) return <div className="text-center">Carregando...</div>;
-  if (error) return <div className="text-center text-red-500">{error}</div>;
+  const renderProductCard = (product: Product, isPurchased = false, purchase?: PurchaseWithProduct) => {
+    const isSelected = selectedProduct?.id === product.id;
+
+    return (
+      <div
+        key={product.id}
+        className={`bg-gray-800 rounded-lg p-6 shadow-lg transition-all ${
+          isSelected ? 'ring-2 ring-blue-500' : ''
+        }`}
+      >
+        <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
+        <p className="text-gray-400 mb-4">{product.description}</p>
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-lg font-medium">
+            R$ {Number(product.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </span>
+          <span className="text-sm text-gray-400">Região: {product.region}</span>
+        </div>
+        
+        <div className="flex gap-2 justify-end">
+          {isPurchased ? (
+            <>
+              <span className="text-green-500">
+                Comprado em: {new Date(purchase!.createdAt).toLocaleDateString('pt-BR')}
+              </span>
+              <button
+                onClick={() => setSelectedProduct(product)}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+              >
+                Tirar Dúvidas
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => handlePurchase(product)}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+            >
+              Comprar
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {products.length === 0 ? (
-        <div className="col-span-full text-center py-8 text-gray-500">
-          {showPurchased ? 'Você ainda não comprou nenhum produto.' : 'Nenhum produto disponível.'}
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      {loading ? (
+        <div className="text-center">Carregando produtos...</div>
+      ) : error ? (
+        <div className="text-center text-red-500">{error}</div>
       ) : (
-        products.map((product) => (
-          <div
-            key={product.id}
-            className={`bg-white rounded-lg shadow-md overflow-hidden border-2 transition-colors ${
-              selectedProduct?.id === product.id ? 'border-indigo-500' : 'border-transparent'
-            }`}
-            onClick={() => setSelectedProduct(product)}
-          >
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{product.name}</h3>
-              <p className="text-gray-600 mb-4">{product.description}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-2xl font-bold text-indigo-600">
-                  {Number(product.price).toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL'
-                  })}
-                </span>
-                {!showPurchased && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePurchase(product);
-                    }}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Comprar
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        ))
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {showPurchased
+            ? purchasedProducts.map((purchase) => 
+                renderProductCard(purchase.Product, true, purchase)
+              )
+            : products.map((product) => renderProductCard(product))}
+        </div>
       )}
     </div>
   );

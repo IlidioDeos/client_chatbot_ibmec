@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { ShoppingCart } from 'lucide-react';
 import { Product } from '../types';
-import { ShoppingCart, MessageCircle } from 'lucide-react';
-
-interface Product {
-  id: string;
-  name: string;
-  price: string | number;
-  description: string;
-  region: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 interface ProductListProps {
   showPurchased: boolean;
@@ -35,18 +25,12 @@ export default function ProductList({
     const envUrl = import.meta.env.VITE_API_URL;
     if (envUrl) return envUrl;
     
-    // Se estiver em produção (railway.app), use a URL do backend em produção
     if (window.location.hostname.includes('railway.app')) {
       return 'https://serverchatbotibmec-production.up.railway.app';
     }
     
-    // Em desenvolvimento local
     return 'http://localhost:3000';
   };
-
-  useEffect(() => {
-    fetchProducts();
-  }, [showPurchased]);
 
   const fetchProducts = async () => {
     try {
@@ -64,8 +48,6 @@ export default function ProductList({
       console.log('Fazendo requisição para:', endpoint);
       
       const response = await fetch(endpoint);
-      console.log('Status:', response.status);
-      console.log('Headers:', Object.fromEntries(response.headers));
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -74,23 +56,29 @@ export default function ProductList({
       const data = await response.json();
       console.log('Dados recebidos:', data);
       
-      let processedProducts: Product[];
-      
-      if (showPurchased) {
-        // Para compras, cada item deve ter uma propriedade Product
-        processedProducts = data
-          .filter((purchase: any) => purchase && purchase.Product)
-          .map((purchase: any) => ({
-            ...purchase.Product,
-            price: String(purchase.Product.price) // Garantir que price seja string
-          }));
-      } else {
-        // Para listagem de produtos, converter os dados para o formato correto
-        processedProducts = data.map((product: any) => ({
-          ...product,
-          price: String(product.price) // Garantir que price seja string
-        }));
+      if (!Array.isArray(data)) {
+        throw new Error('Formato de dados inválido');
       }
+
+      const processedProducts = showPurchased
+        ? data.map((purchase: any) => ({
+            id: purchase.Product.id,
+            name: purchase.Product.name,
+            price: String(purchase.Product.price),
+            description: purchase.Product.description,
+            region: purchase.Product.region,
+            createdAt: purchase.Product.createdAt,
+            updatedAt: purchase.Product.updatedAt
+          }))
+        : data.map((product: any) => ({
+            id: product.id,
+            name: product.name,
+            price: String(product.price),
+            description: product.description,
+            region: product.region,
+            createdAt: product.createdAt,
+            updatedAt: product.updatedAt
+          }));
       
       console.log('Produtos processados:', processedProducts);
       setProducts(processedProducts);
@@ -98,10 +86,15 @@ export default function ProductList({
     } catch (err) {
       console.error('Erro ao buscar produtos:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      setProducts([]);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchProducts();
+  }, [showPurchased, userEmail]);
 
   const handlePurchase = async (product: Product) => {
     try {
@@ -129,21 +122,11 @@ export default function ProductList({
       }
 
       const data = await response.json();
-      // Atualizar o saldo no componente pai
-      if (typeof data.newBalance === 'number') {
-        onPurchaseComplete(data.newBalance);
-      } else {
-        // Se não receber o novo saldo, buscar o saldo atualizado
-        const balanceResponse = await fetch(`${apiUrl}/api/customers/${encodeURIComponent(userEmail)}/balance`);
-        if (balanceResponse.ok) {
-          const balanceData = await balanceResponse.json();
-          onPurchaseComplete(balanceData.balance);
-        }
+      if (data.newBalance) {
+        onPurchaseComplete(Number(data.newBalance));
       }
       
-      // Atualizar a lista de produtos
       await fetchProducts();
-      
       alert('Compra realizada com sucesso!');
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Erro ao realizar compra');

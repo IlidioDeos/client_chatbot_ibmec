@@ -10,17 +10,17 @@ WORKDIR /app
 # Copiar package.json e package-lock.json
 COPY package*.json ./
 
-# Instalar todas as dependências (incluindo devDependencies)
-RUN npm install
+# Instalar todas as dependências necessárias para o build
+RUN npm install --production=false
 
 # Copiar o resto dos arquivos do projeto
 COPY . .
 
-# Verificar se os arquivos necessários existem
+# Verificar arquivos
 RUN ls -la
 
-# Build da aplicação com log detalhado
-RUN npm run build || (echo "Build failed" && exit 1)
+# Build da aplicação com mais detalhes de log
+RUN npm run build || (echo "Build failed" && npm run build --verbose && exit 1)
 
 # Production stage
 FROM nginx:alpine
@@ -28,7 +28,7 @@ FROM nginx:alpine
 # Copiar a configuração do nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Verificar se a pasta dist foi criada
+# Copiar os arquivos buildados
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Verificar se os arquivos foram copiados corretamente

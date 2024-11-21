@@ -14,24 +14,24 @@ export default function App() {
 
   const fetchBalance = useCallback(async (userEmail: string) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL;
-      if (!apiUrl) {
-        throw new Error('API URL não configurada');
-      }
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      console.log('Configuração atual:', {
+        apiUrl,
+        isDev: import.meta.env.DEV,
+        mode: import.meta.env.MODE,
+        allEnv: import.meta.env // para debug
+      });
       
-      console.log('Buscando saldo para:', userEmail);
-      console.log('API URL:', apiUrl);
+      const url = `${apiUrl}/api/customers/${encodeURIComponent(userEmail)}/balance`;
+      console.log('Fazendo requisição para:', url);
       
-      const response = await fetch(
-        `${apiUrl}/api/customers/${encodeURIComponent(userEmail)}/balance`,
-        {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
-      );
+      });
       
       console.log('Status da resposta:', response.status);
       console.log('Headers da resposta:', Object.fromEntries(response.headers));

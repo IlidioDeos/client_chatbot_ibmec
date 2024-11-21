@@ -73,27 +73,19 @@ export default function ProductList({
       const data = await response.json();
       console.log('Dados recebidos:', data);
       
-      // Garantir que data é um array antes de usar map
-      if (!Array.isArray(data)) {
-        console.error('Dados recebidos não são um array:', data);
-        throw new Error('Formato de dados inválido');
+      // Verificar se data é um array ou se pode ser convertido em array
+      let products = Array.isArray(data) ? data : [];
+      
+      if (showPurchased && Array.isArray(data)) {
+        // Para compras, cada item deve ter uma propriedade Product
+        products = data
+          .filter(purchase => purchase && purchase.Product)
+          .map(purchase => purchase.Product);
       }
       
-      // Tratar os dados de acordo com o tipo de listagem
-      if (showPurchased) {
-        // Para compras, cada item deve ter uma propriedade Product
-        const products = data.map(purchase => {
-          if (!purchase.Product) {
-            console.error('Compra sem produto:', purchase);
-            return null;
-          }
-          return purchase.Product;
-        }).filter(product => product !== null);
-        setProducts(products);
-      } else {
-        // Para produtos, usar diretamente o array
-        setProducts(data);
-      }
+      console.log('Produtos processados:', products);
+      setProducts(products);
+      setError(null); // Limpar qualquer erro anterior
     } catch (err) {
       console.error('Erro ao buscar produtos:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');

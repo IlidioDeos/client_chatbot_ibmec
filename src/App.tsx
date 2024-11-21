@@ -10,7 +10,7 @@ export default function App() {
   const [user, setUser] = useState<{ email: string; role: string } | null>(null);
   const [showPurchased, setShowPurchased] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>();
-  const [balance, setBalance] = useState<number | null>(null);
+  const [balance, setBalance] = useState<string | null>(null);
 
   const getApiUrl = () => {
     const envUrl = import.meta.env.VITE_API_URL;
@@ -43,26 +43,10 @@ export default function App() {
       const url = `${apiUrl}/api/customers/${encodeURIComponent(userEmail)}/balance`;
       console.log('Fazendo requisição para:', url);
       
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('Status da resposta:', response.status);
-      console.log('Headers da resposta:', Object.fromEntries(response.headers));
+      const response = await fetch(url);
       
       if (!response.ok) {
-        const text = await response.text();
-        console.error('Resposta de erro:', text);
         throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error(`Tipo de conteúdo inválido: ${contentType}`);
       }
       
       const data = await response.json();
@@ -96,7 +80,7 @@ export default function App() {
 
   const handlePurchaseComplete = useCallback((newBalance: number) => {
     console.log('Atualizando saldo para:', newBalance);
-    setBalance(newBalance);
+    setBalance(String(newBalance));
   }, []);
 
   if (!user) {

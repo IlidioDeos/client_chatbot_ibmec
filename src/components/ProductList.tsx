@@ -124,6 +124,11 @@ export default function ProductList({
         onPurchaseComplete(Number(data.newBalance));
       } else {
         console.warn('Novo saldo não recebido na resposta');
+        const balanceResponse = await fetch(`${apiUrl}/api/customers/${encodeURIComponent(userEmail)}/balance`);
+        if (balanceResponse.ok) {
+          const balanceData = await balanceResponse.json();
+          onPurchaseComplete(Number(balanceData.balance));
+        }
       }
       
       await fetchProducts();
